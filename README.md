@@ -24,10 +24,43 @@ Both skills follow the same principles:
 
 ## How to install
 
-Each skill is a single self-contained `SKILL.md` file. Load it into your agent however that agent consumes instructions:
+Each skill is a single self-contained `SKILL.md` file. How you load it depends on the host agent.
 
-- **Claude Code** — drop the file into `.claude/skills/<name>/SKILL.md` (project) or `~/.claude/skills/<name>/SKILL.md` (user-wide).
-- **Codex / other agents** — paste the contents into the agent's instruction/rules file (e.g. `AGENTS.md`, system prompt, custom rules).
+### Codex (one-line install from GitHub)
+
+Codex can install a skill directly from this repo's URL. Point it at the skill's directory:
+
+```
+https://github.com/kavehmz/companion/tree/main/skills/claude-companion
+https://github.com/kavehmz/companion/tree/main/skills/codex-companion
+```
+
+The skill lands in `~/.codex/skills/<name>/SKILL.md` and shows up in new Codex CLI sessions automatically. Already-running sessions need a restart to pick up the new skill — the skill list is loaded at session startup.
+
+### Claude Code (manual)
+
+Claude Code reads skills from `~/.claude/skills/<name>/SKILL.md` (user-wide) or `.claude/skills/<name>/SKILL.md` (per-project). The simplest install is clone + symlink:
+
+```bash
+git clone https://github.com/kavehmz/companion.git ~/src/companion
+ln -s ~/src/companion/skills/codex-companion ~/.claude/skills/codex-companion
+# (or claude-companion if you want Claude to consult itself — usually not what you want)
+```
+
+Restart any running Claude Code sessions to pick it up.
+
+### Other agents
+
+Paste the contents of the relevant `SKILL.md` into your agent's instruction/rules file (e.g. `AGENTS.md`, system prompt, custom rules).
+
+### Which skill goes where
+
+The skills are cross-tool consultants — install the *other* AI's companion into the agent you're using:
+
+- Using **Codex** day-to-day, want it to consult Claude → install `claude-companion` into Codex.
+- Using **Claude Code** day-to-day, want it to consult Codex → install `codex-companion` into Claude Code.
+
+The two skill directories are independent (`~/.codex/skills/` and `~/.claude/skills/`), so installing in one tool does not propagate to the other. If you want a single source of truth, symlink between them.
 
 Both CLIs (`claude` and `codex`) must be installed and reachable for the corresponding skill to work.
 

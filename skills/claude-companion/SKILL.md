@@ -62,6 +62,34 @@ On follow-ups, the [CONTEXT] block can be a shorter `[UPDATE SINCE LAST CALL]` s
 
 > 🧹 **If you need a clean thread** (user moved to an unrelated topic and you don't want Claude conflating it with the old one), call once *without* `-c` — that starts a new session, which subsequent `-c` calls will then continue.
 
+### Giving Claude tools (only when text-only consultation isn't enough)
+
+By default, `claude -p` runs with **no tools** — Claude can reason, brainstorm, and review based on what you tell it, but cannot run commands, read files, or check live state. That's the right default for consultations: describe the situation in text and ask for advice.
+
+If you genuinely need Claude to inspect or do something (read a specific file, run a test, check live state), pass `--allowedTools` and `--permission-mode auto`:
+
+```bash
+claude -p -c --allowedTools 'Read,Bash(npm test)' --permission-mode auto "<prompt>"
+claude -p -c --allowedTools 'Bash(date)' --permission-mode auto "<prompt>"
+```
+
+**Syntax** (the only thing that's stable across versions):
+- A tool name on its own → that tool is allowed: `Read`, `Edit`, `WebFetch`, etc.
+- `Bash(<pattern>)` → Bash is allowed only for commands matching the glob: `Bash(git *)`, `Bash(npm test)`, `Bash(date)`.
+- Principle of least privilege: narrow first. `Bash(npm test)` is safer than `Bash(npm *)`, which is safer than bare `Bash`. Allow only what the consultation actually needs.
+
+**Discover the current tool names** — don't rely on a hardcoded list, Claude Code's tool set evolves. Run one probe call:
+
+```bash
+claude -p 'List the exact names of your built-in tools, one per line, no description, no markdown.'
+```
+
+The output is the authoritative list for the installed `claude` version. Cache it for the work-session if you'll need it more than once.
+
+> ⚠️ **Silent-failure warning:** without these flags, an action-requiring prompt typically exits **1 with no output** — Claude refused to run the tool but produced no message. If your `claude -p` call exits empty, the most likely cause is that the prompt required a tool you didn't allow. Either rephrase as a text-only consultation, or add `--allowedTools`.
+
+For most companion use cases (decision review, brainstorming, "what am I missing?"), no tools are needed — keep the call simple.
+
 ### If `claude` is not installed
 
 Tell the user: "I'd like to consult Claude on this but the `claude` CLI isn't available. Want to install it or should I proceed on my own?"
