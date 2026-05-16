@@ -35,6 +35,8 @@ The CLI runs non-interactively in `-p` (print) mode and prints Claude's reply as
 
 For continuity across multiple consultations, use `-c` (`--continue`). It picks up the most recent session in the current working directory, and gracefully starts a fresh one if none exists. No session IDs to track, no state files.
 
+> 🔗 **Every call must use `-c`.** `-c` continues *the most recent session* in this CWD. If you slip in a bare `claude -p` mid-thread (e.g. for a tool probe or quick check), that creates a *new* session, and your next `-c` will continue **that** probe — not your original work-session. Treat probes, version checks, and tool discovery as session-affecting: do them once before the first companion call, or fold them into the first call's prompt.
+
 ### Every call
 
 ```bash
@@ -86,9 +88,19 @@ claude -p 'List the exact names of your built-in tools, one per line, no descrip
 
 The output is the authoritative list for the installed `claude` version. Cache it for the work-session if you'll need it more than once.
 
-> ⚠️ **Silent-failure warning:** without these flags, an action-requiring prompt typically exits **1 with no output** — Claude refused to run the tool but produced no message. If your `claude -p` call exits empty, the most likely cause is that the prompt required a tool you didn't allow. Either rephrase as a text-only consultation, or add `--allowedTools`.
-
 For most companion use cases (decision review, brainstorming, "what am I missing?"), no tools are needed — keep the call simple.
+
+### When `claude -p` exits 1 with no output
+
+This is the most confusing failure mode — Claude printed nothing, the exit code is 1. There are **two distinct causes**, and they need different fixes. Don't conflate them:
+
+**1. Tool-permission missing (Claude refused to use a tool).**
+The prompt asked Claude to do something action-y (run a command, read a file) but the tool wasn't on the allowlist. Fix: add `--allowedTools` with the specific tool/command, or rephrase as a text-only consultation.
+
+**2. Filesystem/sandbox blocking Claude's state writes.**
+Claude tried to write to its own state directory (e.g. `~/.claude/session-env/`, `~/.claude/projects/`) but the OS denied it with `EPERM`/`EACCES`. This happens when the *calling agent* (you, Codex, etc.) runs inside a sandbox that doesn't permit writes to `~/.claude/`. Fix: this is **your** sandbox, not Claude's — either escalate per-command, add `$HOME/.claude/` to your allow-write list, or relax your sandbox policy. Re-running with more flags will not help.
+
+**How to tell which one it is:** run the same command outside `-p` (interactively) or with `--debug` and inspect the actual error. If you see `EPERM`/`EACCES` on a path under `~/.claude/`, it's #2. Otherwise it's #1.
 
 ### If `claude` is not installed
 
